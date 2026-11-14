@@ -187,11 +187,19 @@ def plot_age_matchups(matches: pd.DataFrame):
             group["player_age"], group["age_difference"],
             color=color, label=result, s=18, alpha=0.85, edgecolors="none", zorder=3,
         )
+    _style_matchup_axes(axes)
+    figure.suptitle(f"{player} — Career Singles Matches", weight="bold")
+    axes.legend(loc="lower center", bbox_to_anchor=(0.5, 1.10),
+                ncol=2, frameon=False)
+    return figure
+
+
+def _style_matchup_axes(axes):
     axes.axhline(0, color="#858585", linewidth=1)
     axes.grid(color="#e7e7e7", linewidth=0.8)
-    axes.set_title(f"{player} — Career Singles Matches", weight="bold")
+    axes.xaxis.tick_top()
+    axes.xaxis.set_label_position("top")
     axes.set_xlabel("Player age (years)")
     axes.set_ylabel("Player age − opponent age (years)")
-    axes.spines[["top", "right"]].set_visible(False)
-    axes.legend(frameon=False)
-    return figure
+    axes.yaxis.set_major_formatter(lambda value, _: "Same age" if value == 0 else f"{value:g}")
+    axes.spines[["top", "right", "bottom", "left"]].set_visible(False)
