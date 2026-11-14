@@ -37,6 +37,7 @@ def _download(path):
         raise RuntimeError(f"Could not read Tennis Abstract data at {path}: {error}") from error
 
 
+# Normalize names so spaces, case, and accents do not affect player lookup.
 def _name_key(name):
     letters = unicodedata.normalize("NFKD", name.casefold())
     return "".join(letter for letter in letters if letter.isalnum())
@@ -64,6 +65,7 @@ def _array_start(source, variable):
     return re.search(rf"\bvar\s+{variable}\s*=\s*(?=\[)", source)
 
 
+# Read the array from a JavaScript assignment without running the script.
 def _read_array(source, variable):
     start = _array_start(source, variable)
     if start is None:
@@ -83,6 +85,7 @@ def _load_profile(slug, tour):
     return profile
 
 
+# Some profiles need an archive to fill in older matches.
 def _career_rows(profile, slug):
     current = _read_array(profile, "matchmx") if _array_start(profile, "matchmx") else []
     if current and re.search(r"\bvar\s+careerjs\s*=\s*0\b", profile):
@@ -109,6 +112,7 @@ def _age_at(event_date, birthday):
     return (event_date - birthday).days / _DAYS_PER_YEAR
 
 
+# Tennis Abstract stores opponent ages as birth dates or decimal years.
 def _opponent_age(value, event_date):
     try:
         if re.fullmatch(r"\d{8}", value):
