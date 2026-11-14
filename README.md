@@ -2,6 +2,12 @@
 
 This package retrieves singles match data from [Tennis Abstract](https://www.tennisabstract.com/) and plots a player's age against their age difference with each opponent, following the style of the HW2 scatter plot.
 
+## Project files
+
+- [`tennis_career.py`](tennis_career.py) fetches and cleans career match data and creates the scatter plot.
+- [`pyproject.toml`](pyproject.toml) defines how the package is installed and lists its dependencies.
+- [`tests/`](tests/) contains offline tests and sample Tennis Abstract JavaScript files for Serena Williams and Rafael Nadal.
+
 ## Install
 
 Use Python 3.9 or newer.
