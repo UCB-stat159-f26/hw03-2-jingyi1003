@@ -7,7 +7,7 @@ import unicodedata
 from datetime import date
 from urllib.error import URLError
 from urllib.parse import quote
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import pandas as pd
 
@@ -31,7 +31,8 @@ def get_career_matches(player_name: str) -> pd.DataFrame:
 
 def _download(path):
     try:
-        with urlopen(_BASE_URL + path, timeout=30) as response:
+        request = Request(_BASE_URL + path, headers={"User-Agent": "tennis-career/0.1"})
+        with urlopen(request, timeout=30) as response:
             return response.read().decode("utf-8-sig")
     except (URLError, TimeoutError, UnicodeError) as error:
         raise RuntimeError(f"Could not read Tennis Abstract data at {path}: {error}") from error
