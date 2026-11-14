@@ -34,4 +34,4 @@ python -B -m unittest discover -s tests -v
 
 ## Personal reflections
 
-<!-- Add a short paragraph about what you learned while working on this assignment. For example, describe how the two formats for opponent age affected your code and what the offline tests helped you verify. -->
+In HW2, I only worked with Serena’s data. Comparing it with Nadal’s sample for HW3 showed me that the same field can mean two different things. For Serena’s opponents, I had to calculate age from a birth date. Nadal’s sample already gave the opponent’s age in years. Using three saved matches for each player made it easy to check the age difference and match results without accessing the website.
