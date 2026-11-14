@@ -16,6 +16,11 @@ _DAYS_PER_YEAR = 365.2425
 _RESULTS = {"W": "Win", "L": "Loss"}
 _UNPLAYED = {"", "W/O", "WO", "DEF", "BYE"}
 
+_MATCH_COLUMNS = [
+    "player", "event_date", "tournament", "surface", "round", "score",
+    "opponent", "result", "player_age", "opponent_age", "age_difference",
+]
+
 
 def get_career_matches(player_name: str) -> pd.DataFrame:
     """Return plot-ready singles matches for a player listed on Tennis Abstract."""
@@ -169,10 +174,10 @@ def _match_frame(rows, name, birthday):
     if frame.empty:
         raise ValueError(f"No matches with usable opponent ages were found for {name}.")
     keys = ["event_date", "tournament", "round", "score", "opponent", "result"]
-    columns = ["player", "event_date", "tournament", "surface", "round", "score",
-               "opponent", "result", "player_age", "opponent_age", "age_difference"]
-    frame = frame[columns].drop_duplicates(keys)
-    return frame.sort_values("event_date", kind="stable", ignore_index=True)
+    frame = frame[_MATCH_COLUMNS].drop_duplicates(keys)
+    frame = frame.sort_values("event_date", kind="stable", ignore_index=True)
+    frame.attrs["player_birthday"] = birthday
+    return frame
 
 
 def plot_age_matchups(matches: pd.DataFrame):
@@ -180,26 +185,68 @@ def plot_age_matchups(matches: pd.DataFrame):
     import matplotlib.pyplot as plt
 
     player = matches["player"].iloc[0]
-    figure, axes = plt.subplots(figsize=(10, 6), layout="constrained", facecolor="white")
-    for result, color in (("Win", "#40c5e5"), ("Loss", "#953a8c")):
-        group = matches.loc[matches["result"].eq(result)]
-        axes.scatter(
-            group["player_age"], group["age_difference"],
-            color=color, label=result, s=18, alpha=0.85, edgecolors="none", zorder=3,
-        )
-    _style_matchup_axes(axes)
-    figure.suptitle(f"{player} — Career Singles Matches", weight="bold")
-    axes.legend(loc="lower center", bbox_to_anchor=(0.5, 1.10),
-                ncol=2, frameon=False)
+    youngest, oldest = _title_age_range(matches)
+    title = f"{player}'s Professional Matches, Age {youngest} to {oldest}"
+    with plt.rc_context({"font.family": "DejaVu Sans", "font.size": 11}):
+        figure, axes = plt.subplots(figsize=(11, 8.2), facecolor="white")
+        figure.subplots_adjust(left=.14, right=.97, bottom=.15, top=.78)
+        _plot_match_points(axes, matches)
+        _style_matchup_axes(axes)
+        _label_matchup_axes(axes)
+        _label_matchup_figure(figure, title)
     return figure
 
 
+def _title_age_range(matches):
+    birthday = matches.attrs.get("player_birthday")
+    if birthday is None:
+        return int(matches["player_age"].min()), int(matches["player_age"].max())
+    dates = matches["event_date"]
+    return _whole_age(dates.min(), birthday), _whole_age(dates.max(), birthday)
+
+
+def _whole_age(event_date, birthday):
+    before_birthday = (event_date.month, event_date.day) < (birthday.month, birthday.day)
+    return event_date.year - birthday.year - before_birthday
+
+
+def _plot_match_points(axes, matches):
+    colors = {"Win": "#40c5e5", "Loss": "#953a8c"}
+    for result, color in colors.items():
+        group = matches.loc[matches["result"].eq(result)]
+        axes.scatter(
+            group["player_age"], group["age_difference"],
+            s=18, color=color, alpha=.85, edgecolors="none",
+            label="Match won" if result == "Win" else "Match lost", zorder=3,
+        )
+
+
 def _style_matchup_axes(axes):
-    axes.axhline(0, color="#858585", linewidth=1)
-    axes.grid(color="#e7e7e7", linewidth=0.8)
+    from matplotlib.ticker import MaxNLocator
+
+    axes.set_facecolor("white")
     axes.xaxis.tick_top()
-    axes.xaxis.set_label_position("top")
-    axes.set_xlabel("Player age (years)")
-    axes.set_ylabel("Player age − opponent age (years)")
-    axes.yaxis.set_major_formatter(lambda value, _: "Same age" if value == 0 else f"{value:g}")
-    axes.spines[["top", "right", "bottom", "left"]].set_visible(False)
+    axes.xaxis.set_major_locator(MaxNLocator(nbins=15, integer=True))
+    axes.yaxis.set_major_locator(MaxNLocator(nbins=5, steps=[1, 2, 5, 10]))
+    axes.grid(color="#e7e7e7", linewidth=.8)
+    axes.axhline(0, color="#858585", linewidth=1, zorder=2)
+    axes.spines[:].set_visible(False)
+    axes.tick_params(length=0, pad=7, labelcolor="#888888")
+
+
+def _label_matchup_axes(axes):
+    axes.yaxis.set_major_formatter(lambda value, _: "Same age" if value == 0 else f"{value:+g}")
+    axes.text(.01, 1.075, "Player age (years)", transform=axes.transAxes,
+              color="#888888", fontsize=10)
+    axes.text(-.105, .87, "Older\nthan\nopponent", transform=axes.transAxes,
+              ha="center", va="center", fontsize=10, color="#888888")
+    axes.text(-.105, .09, "Younger\nthan\nopponent", transform=axes.transAxes,
+              ha="center", va="center", fontsize=10, color="#888888")
+
+
+def _label_matchup_figure(figure, title):
+    figure.legend(loc="upper center", bbox_to_anchor=(.56, .915), frameon=False,
+                  ncol=2, handletextpad=.25, columnspacing=1.2)
+    figure.text(.56, .96, title,
+                fontsize=15, weight="bold", ha="center")
+    figure.text(.13, .065, "Source: Tennis Abstract", fontsize=9, color="#555555")
